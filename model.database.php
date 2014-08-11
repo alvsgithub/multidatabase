@@ -1,5 +1,4 @@
 <?php
-require_once("utility.functions.php");
 // AWS
 require_once("api/aws-sdk/sdk.class.php");
 
