@@ -228,6 +228,36 @@ class Database_Mysql extends Relational_SQL_Database
 		return "";
 	}
 
+	public function create_table($table_name,$fields,$engine="InnoDB",$charset="latin1")
+	{
+		$fields_sql_ary=array();
+		$c=0;
+		$first_field="";
+		$second_field="";
+		foreach ($fields as $fk=>$fv)
+		{
+			$fields_sql_ary[]="`$fv` varchar(50) NOT NULL DEFAULT ''";
+			if ($c==0) {$first_field=$fv;}
+			if ($c==1) {$second_field=$fv;}
+			$c=$c+1;
+		}
+		$key_str = "PRIMARY KEY (`$first_field`,`$second_field`)";
+		if ($second_field=="")
+		{
+			$key_str = "PRIMARY KEY (`$first_field`)";
+		}
+		$fields_sql_ary[]=$key_str;
+		$fields_sql_ary_join = implode(",",$fields_sql_ary);
+
+		$SQL = <<<EOL
+CREATE TABLE IF NOT EXISTS `$table_name` (
+$fields_sql_ary_join
+) ENGINE=$engine  DEFAULT CHARSET=$charset ;
+EOL;
+		$this->query($SQL);
+
+	}
+
 	public function execute_query($query_string)
 	{
 		$result = false;
@@ -546,7 +576,7 @@ class Database_Oracle extends Relational_SQL_Database
 } // END CLASS
 
 // CONCRETE DATABASE TYPE: POSTGRES
-class Databasesettingsgres extends Relational_SQL_Database
+class Database_Postgres extends Relational_SQL_Database
 {
 	public $limit_sql="LIMIT 1";
 	public function __construct()
@@ -1232,7 +1262,7 @@ abstract class Database_Adapter
 			return false;
 		}
 	}
-	function issettingsgres()
+	function is_postgres()
 	{
 		if ( strpos($this->kind,"postgres")!==false )
 		{
@@ -1268,7 +1298,7 @@ class Array_Database_Adapter extends Database_Adapter
 			$this->kind="unknown";
 			return;
 		}
-		if ($this->is_mysql() || $this->is_mssql() || $this->is_oracle() || $this->issettingsgres() || $this->is_mongo() )
+		if ($this->is_mysql() || $this->is_mssql() || $this->is_oracle() || $this->is_postgres() || $this->is_mongo() )
 		{
 			if ($this->is_mysql() )
 			{
@@ -1282,9 +1312,9 @@ class Array_Database_Adapter extends Database_Adapter
 			{
 				$this->database = new Database_Oracle();
 			}
-			if ($this->issettingsgres() )
+			if ($this->is_postgres() )
 			{
-				$this->database = new Databasesettingsgres();
+				$this->database = new Database_Postgres();
 			}
 			if ($this->is_mongo() )
 			{
@@ -1325,6 +1355,3 @@ class Array_Database_Adapter extends Database_Adapter
 	}
 }
 
-
-
-?>
