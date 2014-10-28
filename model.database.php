@@ -546,7 +546,7 @@ class Database_Oracle extends Relational_SQL_Database
 } // END CLASS
 
 // CONCRETE DATABASE TYPE: POSTGRES
-class Database_Postgres extends Relational_SQL_Database
+class Databasesettingsgres extends Relational_SQL_Database
 {
 	public $limit_sql="LIMIT 1";
 	public function __construct()
@@ -1232,7 +1232,7 @@ abstract class Database_Adapter
 			return false;
 		}
 	}
-	function is_postgres()
+	function issettingsgres()
 	{
 		if ( strpos($this->kind,"postgres")!==false )
 		{
@@ -1255,20 +1255,20 @@ abstract class Database_Adapter
 		}
 	}
 }
-class Post_Database_Adapter extends Database_Adapter
+class Array_Database_Adapter extends Database_Adapter
 {
 	function __construct($settings)
 	{
-		if ( isset($_POST['dbtype']) )
+		if ( isset($settings['dbtype']) )
 		{
-			$this->kind=strtolower($_POST['dbtype']);
+			$this->kind=strtolower($settings['dbtype']);
 		}
 		else
 		{
 			$this->kind="unknown";
 			return;
 		}
-		if ($this->is_mysql() || $this->is_mssql() || $this->is_oracle() || $this->is_postgres() || $this->is_mongo() )
+		if ($this->is_mysql() || $this->is_mssql() || $this->is_oracle() || $this->issettingsgres() || $this->is_mongo() )
 		{
 			if ($this->is_mysql() )
 			{
@@ -1282,21 +1282,21 @@ class Post_Database_Adapter extends Database_Adapter
 			{
 				$this->database = new Database_Oracle();
 			}
-			if ($this->is_postgres() )
+			if ($this->issettingsgres() )
 			{
-				$this->database = new Database_Postgres();
+				$this->database = new Databasesettingsgres();
 			}
 			if ($this->is_mongo() )
 			{
 				$this->database = new Database_Mongodb();
 			}
-			if ( isset($_POST['DBHOST']) && isset($_POST['DBUSER']) && isset($_POST['DBPASS']) && isset($_POST['DBNAME']) )
+			if ( isset($settings['DBHOST']) && isset($settings['DBUSER']) && isset($settings['DBPASS']) && isset($settings['DBNAME']) )
 			{
-				$this->database->url=$_POST['DBHOST'];
-				$this->database->auth1=$_POST['DBUSER'];
-				$this->database->auth2=$_POST['DBPASS'];
-				$this->database->dbname=$_POST['DBNAME'];
-				$this->database->table_prefix=$_POST['DBTABLEPREFIX'];
+				$this->database->url=$settings['DBHOST'];
+				$this->database->auth1=$settings['DBUSER'];
+				$this->database->auth2=$settings['DBPASS'];
+				$this->database->dbname=$settings['DBNAME'];
+				$this->database->table_prefix=$settings['DBTABLEPREFIX'];
 				$this->database->kind=$this->kind;
 				$this->database->connect();
 			}
@@ -1304,14 +1304,14 @@ class Post_Database_Adapter extends Database_Adapter
 		else if ($this->is_dynamodb() )
 		{
 			$this->database = new Database_Dynamodb();
-			if ( isset($_POST['DYNAMO-ACCESS-KEY']) && isset($_POST['DYNAMO-SECRET-KEY']) && isset($_POST['DYNAMO-REGION-NAME']) )
+			if ( isset($settings['DYNAMO-ACCESS-KEY']) && isset($settings['DYNAMO-SECRET-KEY']) && isset($settings['DYNAMO-REGION-NAME']) )
 			{
-				$this->database->auth1=$_POST['DYNAMO-ACCESS-KEY'];
-				$this->database->auth2=$_POST['DYNAMO-SECRET-KEY'];
-				$this->database->region=$_POST['DYNAMO-REGION-NAME'];
+				$this->database->auth1=$settings['DYNAMO-ACCESS-KEY'];
+				$this->database->auth2=$settings['DYNAMO-SECRET-KEY'];
+				$this->database->region=$settings['DYNAMO-REGION-NAME'];
 				$this->database->dbname=$this->database->region;
 				$this->database->url=constant("AmazonDynamoDB::".$this->database->region);
-				$this->database->table_prefix=$_POST['DBTABLEPREFIX'];
+				$this->database->table_prefix=$settings['DBTABLEPREFIX'];
 				$this->database->kind=$this->kind;
 				$this->database->connect();
 			}
@@ -1324,128 +1324,7 @@ class Post_Database_Adapter extends Database_Adapter
 		}
 	}
 }
-class Settings_Database_Adapter extends Database_Adapter
-{
-	function __construct($settings)
-	{
-		// settings array
-		$this->kind=strtolower($settings['memory']['@attributes']['value']);
-		if ($this->is_mysql() || $this->is_mssql() || $this->is_oracle() || $this->is_postgres() )
-		{
-			if ($this->is_mysql() )
-			{
-				$this->database = new Database_Mysql();
-			}
-			if ($this->is_mssql() )
-			{
-				$this->database = new Database_Mssql();
-			}
-			if ($this->is_oracle() )
-			{
-				$this->database = new Database_Oracle();
-			}
-			if ($this->is_postgres() )
-			{
-				$this->database = new Database_Postgres();
-			}
-			if ($this->is_mongo() )
-			{
-				$this->database = new Database_Mongodb();
-			}
-			$this->database->url=$settings[$this->kind]['server']['@attributes']['value'];
-			$this->database->auth1=$settings[$this->kind]['user']['@attributes']['value'];
-			$this->database->auth2=$settings[$this->kind]['pass']['@attributes']['value'];
-			$this->database->dbname=$settings[$this->kind]['database']['@attributes']['value'];
-			$this->database->table_prefix=$settings[$this->kind]['table-prefix']['@attributes']['value'];
-			$this->database->kind=$this->kind;
-			$this->database->connect();
-		}
-		else if ($this->is_dynamodb() )
-		{
-			$this->database = new Database_Dynamodb();
-			$this->database->auth1=$settings[$this->kind]['access-key']['@attributes']['value'];
-			$this->database->auth2=$settings[$this->kind]['secret-key']['@attributes']['value'];
-			$this->database->region=$settings[$this->kind]['region']['@attributes']['value'];
-			$this->database->dbname=$this->database->region;
-			$this->database->url=constant("AmazonDynamoDB::".$this->database->region);
-			$this->database->table_prefix=$settings[$this->kind]['table-prefix']['@attributes']['value'];
-			$this->database->kind=$this->kind;
-			$this->database->connect();
-		}
-		else
-		{
-			echo "UNRECOGNIZED database TYPE "+$this->kind;
-			$this->database=false;
-			exit;
-		}
-	
-	} // END FUNCTION
-
-} // end class
 
 
-class MatchEntry_Database_Adapter extends Database_Adapter
-{
-	function __construct($settings)
-	{
-		// settings array
-		$this->kind=$settings['db_type']->value;
-		if ($this->is_mysql() || $this->is_mssql() || $this->is_oracle() || $this->is_postgres() )
-		{
-			if ($this->is_mysql() )
-			{
-				$this->database = new Database_Mysql();
-			}
-			if ($this->is_mssql() )
-			{
-				$this->database = new Database_Mssql();
-			}
-			if ($this->is_oracle() )
-			{
-				$this->database = new Database_Oracle();
-			}
-			if ($this->is_postgres() )
-			{
-				$this->database = new Database_Postgres();
-			}
-			if ($this->is_mongo() )
-			{
-				$this->database = new Database_Mongodb();
-			}
-			if ( isset($settings['DBHOST']) && isset($settings['DBUSER']) && isset($settings['DBPASS']) && isset($settings['DBNAME']) )
-			{
-				$this->database->url=$settings['DBHOST']->value;
-				$this->database->auth1=$settings['DBUSER']->value;
-				$this->database->auth2=$settings['DBPASS']->value;
-				$this->database->dbname=$settings['DBNAME']->value;
-				$this->database->table_prefix="";//$settings['DBTABLEPREFIX']->value;
-				$this->database->kind=$this->kind;
-				$this->database->connect();
-			}
-		}
-		else if ($this->is_dynamodb() )
-		{
-			$this->database = new Database_Dynamodb();
-			if ( isset($settings['DYNAMO-ACCESS-KEY']) && isset($settings['DYNAMO-SECRET-KEY']) && isset($settings['DYNAMO-REGION-NAME']) )
-			{
-				$this->database->auth1=$settings['DYNAMO-ACCESS-KEY']->value;
-				$this->database->auth2=$settings['DYNAMO-SECRET-KEY']->value;
-				$this->database->region=$settings['DYNAMO-REGION-NAME']->value;
-				$this->database->url=constant("AmazonDynamoDB::".$this->database->region);
-				$this->database->table_prefix="";//$settings['DBTABLEPREFIX']->value;
-				$this->database->kind=$this->kind;
-				$this->database->connect();
-			}
-		}
-		else
-		{
-			echo "UNRECOGNIZED database TYPE "+$this->kind;
-			$this->database=false;
-			exit;
-		}
-	
-	} // END FUNCTION
-
-} // end class
 
 ?>
